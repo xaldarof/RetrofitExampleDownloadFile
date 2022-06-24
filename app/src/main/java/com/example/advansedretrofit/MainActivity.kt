@@ -1,18 +1,16 @@
 package com.example.advansedretrofit
 
 import android.os.Bundle
-import android.os.Environment
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import okhttp3.ResponseBody
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
-import retrofit2.http.GET
 import java.io.File
 import java.io.FileOutputStream
+import java.io.InputStream
+import java.io.OutputStream
 
 
 class MainActivity : AppCompatActivity() {
@@ -25,9 +23,7 @@ class MainActivity : AppCompatActivity() {
         retrofit.downloadBook().enqueue(object : Callback<ResponseBody> {
             override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
                 if (response.isSuccessful) {
-                    val file = File(this@MainActivity.filesDir,"book.epub")
-                    val fileOutputStream = FileOutputStream(file)
-                    fileOutputStream.write(response.body()?.bytes())
+                    response.body()?.let { writeResponseBodyToDisk(it) }
                 } else {
                     Log.d("res", "Error")
                 }
@@ -38,21 +34,46 @@ class MainActivity : AppCompatActivity() {
             }
         })
     }
-}
 
-interface RetrofitService {
-    @GET("/Advanced-Accessibility-Tests-Media-Overlays-v1.0.0.epub")
-    fun downloadBook(): Call<ResponseBody>
-}
+    private fun calulateProgress(totalSize: Double, downloadSize: Double): Double {
+        return ((downloadSize / totalSize) * 100)
+    }
 
+    fun writeResponseBodyToDisk(body: ResponseBody): Boolean {
+        val filename = "book.epub"
+        val apkFile =
+            File(this.filesDir,
+                filename)
 
-object RetrofitProvider {
+        var inputStream: InputStream? = null
+        var outputStream: OutputStream? = null
+        try {
+            val fileReader = ByteArray(4096)
+            val fileSize = body.contentLength()
+            var fileSizeDownloaded: Long = 0
+            inputStream = body.byteStream()
+            outputStream = FileOutputStream(apkFile)
+            while (true) {
+                val read = inputStream.read(fileReader)
+                if (read == -1) {
+                    break
+                }
+                outputStream.write(fileReader, 0, read)
+                fileSizeDownloaded += read.toLong()
 
-    fun getInstance(): Retrofit {
-        return Retrofit
-            .Builder()
-            .baseUrl("https://epubtest.org/books/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
+                calulateProgress(fileSize.toDouble(), fileSizeDownloaded.toDouble())
+                println("file downloading $fileSizeDownloaded of $fileSize")
+                outputStream.flush()
+
+                return true
+            }
+        } catch (e: Exception) {
+            println(e.toString())
+            return false
+        } finally {
+            inputStream?.close()
+            outputStream?.close()
+        }
+        return true
     }
 }
