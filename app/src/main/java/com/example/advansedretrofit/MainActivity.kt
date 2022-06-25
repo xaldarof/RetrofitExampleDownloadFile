@@ -7,6 +7,7 @@ import androidx.appcompat.app.AppCompatActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
@@ -21,13 +22,14 @@ class MainActivity : AppCompatActivity() {
 
         CoroutineScope(Dispatchers.IO).launch {
             launch {
-                downloadBook()
-            }
-        }
+                val file = downloadBook()
+                if (file != null) {
 
-        CoroutineScope(Dispatchers.Main).launch {
-            launch {
-                findViewById<TextView>(androidx.core.R.id.text).text = "Success"
+                    //aynan shu joyni Assosiy(Ui) oqim bilan ishlatadi
+                    withContext(Dispatchers.Main) {
+                        findViewById<TextView>(androidx.core.R.id.text).text = "Success"
+                    }
+                }
             }
         }
     }
@@ -45,8 +47,6 @@ class MainActivity : AppCompatActivity() {
             null
         }
     }
-
-
 
 
     private fun InputStream.toContent(): File {
