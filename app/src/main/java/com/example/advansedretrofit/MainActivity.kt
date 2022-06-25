@@ -1,16 +1,12 @@
 package com.example.advansedretrofit
 
-import android.content.Context
 import android.os.Bundle
 import android.util.Log
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import okhttp3.ResponseBody
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
@@ -24,7 +20,15 @@ class MainActivity : AppCompatActivity() {
 
 
         CoroutineScope(Dispatchers.IO).launch {
-            downloadBook()
+            launch {
+                downloadBook()
+            }
+        }
+
+        CoroutineScope(Dispatchers.Main).launch {
+            launch {
+                findViewById<TextView>(androidx.core.R.id.text).text = "Success"
+            }
         }
     }
 
@@ -33,7 +37,7 @@ class MainActivity : AppCompatActivity() {
 
         return try {
             val requestBody = retrofit.downloadFile()
-            val file = requestBody.byteStream().toContent(this, "book")
+            val file = requestBody.byteStream().toContent()
 
             file
         } catch (e: Exception) {
@@ -43,12 +47,12 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    private fun InputStream.toContent(
-        context: Context,
-        fileName: String = "bookfile",
-    ): File {
+
+
+    private fun InputStream.toContent(): File {
         use {
-            val file = File(context.filesDir, fileName)
+            val file = File(filesDir, "book.epub")
+
             FileOutputStream(file).use { output ->
                 val buffer = ByteArray(4 * 1024)
                 var read: Int
